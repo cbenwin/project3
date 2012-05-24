@@ -41,15 +41,6 @@ typedef struct mem{
     int handle;
 } mem;
 
-typedef struct{
-	unsigned int bit : 1;
-} Bit;
-
-struct bit_array {
-	unsigned char *array;
-	unsigned int numBits;
-}; 
-
 /* Global Variables */
 mem *MEMORY;
 int memALLOCATED = 0;
