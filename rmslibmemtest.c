@@ -127,12 +127,14 @@ void *memalloc(int handle, long n_bytes){
        if (curMEM.allocptr[0] == 0){
           //Try to find the level at which the chunks are equal to n_bytes.
           while ((size - blah) != n_bytes){
+            //Blah increments by powers of 2.
             blah = (2 ^ level);
+            //Increment the level of access.
             level++;
           }
-          curMEM.allocptr[level] = blah;
-          level--;
-          blah = log2((double)blah);
+          //Set the level of the memory so that a portion of the memory is
+          //marked as used.
+          //Increment through the levels, by decrementing the level.
           while (level != 0){
             curMEM.allocptr[level] = blah;
             blah = log2((double)blah);
