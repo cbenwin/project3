@@ -110,6 +110,42 @@ int meminit (long n_bytes, unsigned int flags, int parm1, int *parm2){
 	memALLOCATED++;
 	return (memALLOCATED - 1);
 }
+/* getLEVEL(int level, int handle)
+ * The level parameter is the current level. The handle is the current MEMORY
+ * index. Returns true when it found an appropriate page to allocate.
+ * */
+bool getLEVEL(int level,int handle){
+    printf ("level: %d, handle: %d\n", level, handle);
+    int blah = pow(2,level);
+    int curLEV = (level-1);
+    unsigned int ONE = 1;
+    unsigned int TWO = 2;
+    struct mem curMEM = MEMORY[handle];
+    //while blah and the uint at the current level are unequal
+    while (( blah & curMEM.allocptr[level] )==0){
+        //Increment through all of the possible values at this level.
+        blah = blah/2;
+        if (blah == 0) return false;
+    }
+    //Trying to figure out the block that you need to free/allocate/the
+    //concurrent processes of both.
+    blah = log2(blah);
+    //The freeing/allocating of pages.
+    if ((blah % 2) == 0){
+        curMEM.allocptr[level]  = curMEM.allocptr[level]<<ONE;
+    }else {
+        curMEM.allocptr[level] = curMEM.allocptr[level]>>ONE;
+    }
+    //while you aren't at the highest level of memory
+    while (curLEV >= 0){
+       curMEM.allocptr[curLEV] = blah;
+       if (blah != 1){
+           if ((blah % 2) != 0)  blah = blah - 1;
+           blah = log2(blah);
+       }
+       curLEV--;
+    }
+}
 
 void *memalloc(int handle, long n_bytes){
     struct mem curMEM = MEMORY[handle];
@@ -118,6 +154,11 @@ void *memalloc(int handle, long n_bytes){
         return NULL;
     }
     if (curMEM.flags == BUDDY){
+        int min = pow(2,curMEM.parm1);
+        if (n_bytes < min){
+            printf ("You have given an incorrect page size.\n");
+            return NULL;
+        }
        //current level = largest level
        int level = 0;
        unsigned long blah = 1;
@@ -135,19 +176,32 @@ void *memalloc(int handle, long n_bytes){
                 //Increment the level of access.
                 level++;
              }
+            blah = pow(2,level);
             //Set the level of the memory so that a portion of the memory is
              //marked as used.
              //Increment through the levels, by decrementing the level.
              while (level >= 0){
                 curMEM.allocptr[level] = blah;
-                if ((level != 1)&&(blah != 1)){
-                   blah = blah/2;
-                }
+                blah = blah/2;
                 level --;
              }
+       }else {
+           //While you aren't at the current level, where the page size equals n_bytes.
+           while ((n_bytes - curSIZE) < 0){
+               //get the value 2^level, which equals the current number of
+               //pages.
+               blah = pow(2, level);
+               //Get the current page size, which equals the total memory
+               //allocated size divided by the current number of pages.
+               curSIZE = size / blah;
+               level++;
+           }
+           bool retVAL = getLEVEL(level,handle);
        }
     }
 }
+
+        
 
 int main (){
 	int parm1 = 12;	//4KB (Minimum Page Size)
@@ -156,18 +210,15 @@ int main (){
 	int i;
 	
 	int init_test = meminit(region, BUDDY, parm1, &parm2);
-    printf ("init_test = %d\n", init_test);
-	
-	for(i = 0; i < 1; i++){
-		struct mem test = MEMORY[i];
-		printf("Test:%p\n", &test);
-		printf("Allocptr value: %p\n", test.allocptr);
-		printf("N_Bytes: %lu\n", test.size);
-		printf("Flags: %d\n", test.flags);
-		printf("Parm1: %d\n", test.parm1);
-		printf("Parm2: %p\n",test.parm2);
-	}
-    memalloc(init_test,32);
+    struct mem test = MEMORY[0];
+    printf("Test:%p\n", &test);
+    printf("Allocptr value: %p\n", test.allocptr);
+    printf("N_Bytes: %lu\n", test.size);
+    printf("Flags: %d\n", test.flags);
+    printf("Parm1: %d\n", test.parm1);
+    printf("Parm2: %p\n",test.parm2);
+    memalloc(init_test,4096);
+    memalloc(init_test,8192);
     //int *nullARR;
     //int retINIT = meminit(64000,0x1,4000,nullARR);
     //memalloc(retINIT,8000);
