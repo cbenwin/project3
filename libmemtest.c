@@ -137,7 +137,7 @@ int main (){
 	
 	for(i = 0; i < 1; i++){
 		struct mem * test = &memarray[i];
-		printf("h:%p\n", test);
+		printf("Test:%p\n", test);
 		printf("Allocptr value: %p\n", test->allocptr);
 		printf("N_Bytes: %lu\n", test->size);
 		printf("Flags: %d\n", test->flags);
