@@ -4,6 +4,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <math.h>
+/* DEFINITIONS */
 #define FREELIST 0x4
 //#define FIRSTFIT 0x0
 //#define NEXTFIT 0x08
@@ -122,24 +123,28 @@ void *memalloc(int handle, long n_bytes){
        unsigned long blah = 1;
        //size = the size of the entire memory
        int size = (int)curMEM.size;
+       int curSIZE = size;
        //if nothing has been allocated in the memory, signified by the highest
        //level being 0
        if (curMEM.allocptr[0] == 0){
-          //Try to find the level at which the chunks are equal to n_bytes.
-          while ((size - blah) != n_bytes){
-            //Blah increments by powers of 2.
-            blah = (2 ^ level);
-            //Increment the level of access.
-            level++;
-          }
-          //Set the level of the memory so that a portion of the memory is
-          //marked as used.
-          //Increment through the levels, by decrementing the level.
-          while (level != 0){
-            curMEM.allocptr[level] = blah;
-            blah = log2((double)blah);
-            level --;
-         }
+            //Try to find the level at which the chunks are equal to n_bytes.
+            while ((n_bytes - curSIZE) < 0){
+                //Blah increments by powers of 2.
+                blah = pow(2,level);
+                curSIZE = size / blah;
+                //Increment the level of access.
+                level++;
+             }
+            //Set the level of the memory so that a portion of the memory is
+             //marked as used.
+             //Increment through the levels, by decrementing the level.
+             while (level >= 0){
+                curMEM.allocptr[level] = blah;
+                if ((level != 1)&&(blah != 1)){
+                   blah = blah/2;
+                }
+                level --;
+             }
        }
     }
 }
@@ -162,7 +167,7 @@ int main (){
 		printf("Parm1: %d\n", test.parm1);
 		printf("Parm2: %p\n",test.parm2);
 	}
-    memalloc(init_test,65536);
+    memalloc(init_test,32);
     //int *nullARR;
     //int retINIT = meminit(64000,0x1,4000,nullARR);
     //memalloc(retINIT,8000);
