@@ -21,7 +21,7 @@
 
 typedef int bool;
 
-typedef struct linkedlist{
+typedef struct{
     int size;
     int prevSIZE;
     int handle;
@@ -30,19 +30,18 @@ typedef struct linkedlist{
 	bool freespace1;
 } linkedlist;
 
-typedef struct mem{
+struct mem{
 	void *allocptr;
-    unsigned long *mem;
     long size;
     int parm1;
 	int *parm2;
     unsigned int flags;
     linkedlist LL;
-    int handle;
-} mem;
+} memarray[512];
 
 /* Global Variables */
-mem *MEMORY;
+typedef struct mem *MEMORY;
+
 int memALLOCATED = 0;
 
 /* meminit
@@ -52,7 +51,7 @@ int memALLOCATED = 0;
 int meminit (long n_bytes, unsigned int flags, int parm1, int *parm2){
 	void *allocptr;
 	
-    //Checking for incorrect value for flags.
+    //Checking for incorrect value of flags.
     if (flags != BUDDY && flags != SLAB && flags != FREELIST){
         printf ("Incorrect flag value for meminit.\n");
         return -1;
@@ -76,6 +75,7 @@ int meminit (long n_bytes, unsigned int flags, int parm1, int *parm2){
 		allocptr = malloc(n_bytes + extralength);
     }
 	
+	//If slab allocation is selected.
 	if (flags == SLAB){
 		printf("Inside Slab Allocation.\n");
 	}
@@ -97,23 +97,23 @@ int meminit (long n_bytes, unsigned int flags, int parm1, int *parm2){
 	}
 	
 	//Fill out the information in our struct
-	MEMORY[memALLOCATED].allocptr = allocptr;
-	MEMORY[memALLOCATED].size = n_bytes;
-	MEMORY[memALLOCATED].parm1 = parm1;
-	MEMORY[memALLOCATED].parm2 = parm2;
-	MEMORY[memALLOCATED].flags = flags;
+	memarray[memALLOCATED].allocptr = allocptr;
+	memarray[memALLOCATED].size = n_bytes;
+	memarray[memALLOCATED].parm1 = parm1;
+	memarray[memALLOCATED].parm2 = parm2;
+	memarray[memALLOCATED].flags = flags;
 	memALLOCATED++;
-	return MEMORY[memALLOCATED].handle;
+	
+	return (memALLOCATED - 1);
 }
 
-
 void *memalloc(int handle, long n_bytes){
-    if (&MEMORY[handle] == NULL){
+    /*if (&MEMORY[handle] == NULL){
         printf ("MEMORY[handle] == NULL.\n");
         return -1;
     }
     int level = 0;
-	/*
+	
     int size = MEMORY->param;
     mem curMEM = MEMORY[handle];
     unsigned long *curARRAY = curMEM.mem;
@@ -128,8 +128,27 @@ void *memalloc(int handle, long n_bytes){
 }
 
 int main (){
-    int *nullARR;
-    int retINIT = meminit(64000,0x1,4000,nullARR);
-    memalloc(retINIT,8000);
+	int parm1 = 12;	//4KB (Minimum Page Size)
+	long region = 65536;	//64KB (Region Size)
+	int parm2 = 0;
+	int i;
+	
+	int init_test = meminit(region, BUDDY, parm1, &parm2);
+	
+	for(i = 0; i < 1; i++){
+		struct mem * test = &memarray[i];
+		printf("h:%p\n", test);
+		printf("Allocptr value: %p\n", test->allocptr);
+		printf("N_Bytes: %lu\n", test->size);
+		printf("Flags: %d\n", test->flags);
+		printf("Parm1: %d\n", test->parm1);
+		printf("Parm2: %p\n",test->parm2);
+		
+	}
+	
+	
+    //int *nullARR;
+    //int retINIT = meminit(64000,0x1,4000,nullARR);
+    //memalloc(retINIT,8000);
 }
 
