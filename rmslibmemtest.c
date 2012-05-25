@@ -42,8 +42,8 @@ struct mem{
 
 /* Global Variables */
 struct mem MEMORY[512];
-
 int memALLOCATED = 0;
+void *RETVAL;
 
 void memfree (void *region){
     int iter = 0;
@@ -93,8 +93,10 @@ int meminit (long n_bytes, unsigned int flags, int parm1, int *parm2){
 		}
         int indices = (long)(n_bytes/parm1);
         int level = 0;
+        unsigned long ZERO = 0;
         for (; level < indices; level++){
-            allocptr[level] = 0;
+            allocptr = &ZERO;
+            allocptr+1;
         }
     }
 	
@@ -137,7 +139,7 @@ int meminit (long n_bytes, unsigned int flags, int parm1, int *parm2){
  * The level parameter is the current level. The handle is the current MEMORY
  * index. Returns true when it found an appropriate page to allocate.
  * */
-int getLEVEL(int level,int handle){
+void *getLEVEL(int level,int handle){
     int powLEV = (2*level)-1;
     int blah = pow(2,powLEV);
     int curLEV2 = (level-1);
@@ -156,9 +158,7 @@ int getLEVEL(int level,int handle){
         }
         //Increment through all of the possible values at this level.
         blah = blah/2;
-        if (blah == 0){
-            return false;
-        }
+        if (blah == 0) RETVAL = NULL;
         powLEV--;
         curLEV1--;
     }
@@ -176,14 +176,14 @@ int getLEVEL(int level,int handle){
     }
     //while you aren't at the highest level of memory
     while (curLEV2 >= 0){
-       curMEM.allocptr[curLEV2] = blah;
-       i (blah != 1){
-           if ((blah % 2) != 0)  blah = blah - 1;
-           blah = log2(blah);
+       curMEM.allocptr[curLEV2] = log2BLAH;
+       if (blah != 1){
+           if ((blah % 2) != 0)  log2BLAH = log2BLAH - 1;
+           log2BLAH = log2(log2BLAH);
        }
        curLEV2--;
     }
-    return true;
+    RETVAL = &blah;
 }
 
 void *memalloc(int handle, long n_bytes){
@@ -241,11 +241,11 @@ void *memalloc(int handle, long n_bytes){
            if (curMEM.allocptr[level] == 0){
                curMEM.allocptr[level] = pow(2,((2*level)-1));
            }else {
-              bool boolRET = getLEVEL(level,handle);
+              void *voidRET= getLEVEL(level,handle);
               int curLEVEL = level-1;
-              while (boolRET == false){
+              while (voidRET == NULL){
                 if (curLEVEL < 0) break;
-                boolRET = getLEVEL(curLEVEL,handle);
+                voidRET = getLEVEL(curLEVEL,handle);
                 curLEVEL--;
              }
              return &MEMORY[handle].allocptr[curLEVEL];
@@ -253,4 +253,21 @@ void *memalloc(int handle, long n_bytes){
        }
     }
 }
-int main(){printf("I'M MAIN\n");}
+int main(){
+    int parm1 = 12;
+    long region = 65536;
+    int parm2 = 0;
+    int i;
+    int init_test = meminit(region, BUDDY, parm1, &parm2);
+    struct mem test = MEMORY[0];
+    printf("Test:%p\n", &test);
+    printf("Allocptr value: %p\n", test.allocptr);
+    printf("N_Bytes: %lu\n", test.size);
+    printf("Flags: %d\n", test.flags);
+    printf("Parm1: %d\n", test.parm1);
+    printf("Parm2: %p\n",test.parm2);
+    memalloc(init_test,16384);
+    memalloc(init_test,8192);
+    memalloc(init_test,8192);
+    printf("I'M MAIN\n");
+}
