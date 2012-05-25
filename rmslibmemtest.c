@@ -32,10 +32,10 @@ typedef struct{
 } linkedlist;
 
 struct mem{
-	unsigned int*allocptr;
+    unsigned long*allocptr;
     long size;
     int parm1;
-	int *parm2;
+    int *parm2;
     unsigned int flags;
     linkedlist LL;
 };
@@ -45,13 +45,37 @@ struct mem MEMORY[512];
 
 int memALLOCATED = 0;
 
+void memfree (void *region){
+    int iter = 0;
+    //Iterate over the global array to find the responsible region handler.
+    while (&(MEMORY[iter]) != region){
+        int size = (int)MEMORY[iter].size;
+        int parm1 =(int)MEMORY[iter].parm1;
+        int indices = size/parm1;
+        if (MEMORY[iter].flags == BUDDY){
+            int iter = 0;
+            for (; iter < indices; iter++){
+                if (region == &MEMORY[iter].allocptr[iter]){
+                    
+                }
+            }
+        }
+    }
+    iter++;
+    long curSIZE = MEMORY[iter].size;
+    if (MEMORY[iter].flags == BUDDY){
+        int lowLEVEL = MEMORY[iter].parm1;
+        int numLEV = (MEMORY[iter].size)/lowLEVEL;
+
+    }
+}
+
 /* meminit
  * Initializes the memory allocator. 
  * Returns a handle that can be used to identify the allocator.
  */
 int meminit (long n_bytes, unsigned int flags, int parm1, int *parm2){
-	unsigned int*allocptr;
-	
+	unsigned long*allocptr;
     //Checking for incorrect value of flags.
     if (flags != BUDDY && flags != SLAB && flags != FREELIST){
         printf ("Incorrect flag value for meminit.\n");
@@ -68,7 +92,6 @@ int meminit (long n_bytes, unsigned int flags, int parm1, int *parm2){
 			return -1;
 		}
         int indices = (long)(n_bytes/parm1);
-        allocptr = (unsigned int*)malloc(sizeof(unsigned int)*indices);
         int level = 0;
         for (; level < indices; level++){
             allocptr[level] = 0;
@@ -114,37 +137,53 @@ int meminit (long n_bytes, unsigned int flags, int parm1, int *parm2){
  * The level parameter is the current level. The handle is the current MEMORY
  * index. Returns true when it found an appropriate page to allocate.
  * */
-bool getLEVEL(int level,int handle){
-    printf ("level: %d, handle: %d\n", level, handle);
-    int blah = pow(2,level);
-    int curLEV = (level-1);
+int getLEVEL(int level,int handle){
+    int powLEV = (2*level)-1;
+    int blah = pow(2,powLEV);
+    int curLEV2 = (level-1);
     unsigned int ONE = 1;
     unsigned int TWO = 2;
     struct mem curMEM = MEMORY[handle];
+    int curLEV1 = level;
     //while blah and the uint at the current level are unequal
-    while (( blah & curMEM.allocptr[level] )==0){
+    while (curLEV1 > 0){
+        if ((blah & curMEM.allocptr[level])==0){
+            if ((powLEV % 2) == 0){
+                if ((blah*2)&curMEM.allocptr[level] != 0) break;
+            }else {
+                if ((blah/2)&curMEM.allocptr[level] != 0) break;
+            }
+        }
         //Increment through all of the possible values at this level.
         blah = blah/2;
-        if (blah == 0) return false;
+        if (blah == 0){
+            return false;
+        }
+        powLEV--;
+        curLEV1--;
     }
     //Trying to figure out the block that you need to free/allocate/the
     //concurrent processes of both.
-    blah = log2(blah);
+    int log2BLAH = log2(blah);
+    unsigned long curVAL = curMEM.allocptr[level];
     //The freeing/allocating of pages.
-    if ((blah % 2) == 0){
-        curMEM.allocptr[level]  = curMEM.allocptr[level]<<ONE;
+    if ((log2BLAH % 2) == 0){
+        curMEM.allocptr[level] = curVAL ^ blah;
+        curMEM.allocptr[level] = curVAL|(curVAL<<ONE);
     }else {
-        curMEM.allocptr[level] = curMEM.allocptr[level]>>ONE;
+        curMEM.allocptr[level] = curVAL ^ blah;
+        curMEM.allocptr[level] = curVAL|(curVAL>>ONE);
     }
     //while you aren't at the highest level of memory
-    while (curLEV >= 0){
-       curMEM.allocptr[curLEV] = blah;
-       if (blah != 1){
+    while (curLEV2 >= 0){
+       curMEM.allocptr[curLEV2] = blah;
+       i (blah != 1){
            if ((blah % 2) != 0)  blah = blah - 1;
            blah = log2(blah);
        }
-       curLEV--;
+       curLEV2--;
     }
+    return true;
 }
 
 void *memalloc(int handle, long n_bytes){
@@ -165,6 +204,7 @@ void *memalloc(int handle, long n_bytes){
        //size = the size of the entire memory
        int size = (int)curMEM.size;
        int curSIZE = size;
+       unsigned int retVAL;
        //if nothing has been allocated in the memory, signified by the highest
        //level being 0
        if (curMEM.allocptr[0] == 0){
@@ -176,8 +216,9 @@ void *memalloc(int handle, long n_bytes){
                 //Increment the level of access.
                 level++;
              }
-            blah = pow(2,level);
-            //Set the level of the memory so that a portion of the memory is
+             retVAL = level;
+             blah = pow(2,level);
+             //Set the level of the memory so that a portion of the memory is
              //marked as used.
              //Increment through the levels, by decrementing the level.
              while (level >= 0){
@@ -185,42 +226,31 @@ void *memalloc(int handle, long n_bytes){
                 blah = blah/2;
                 level --;
              }
+             return &MEMORY[handle].allocptr[retVAL];
        }else {
            //While you aren't at the current level, where the page size equals n_bytes.
            while ((n_bytes - curSIZE) < 0){
                //get the value 2^level, which equals the current number of
                //pages.
                blah = pow(2, level);
-               //Get the current page size, which equals the total memory
+               //Get the current pazMEMORY[retVAL].e size, which equals the total memory
                //allocated size divided by the current number of pages.
                curSIZE = size / blah;
                level++;
            }
-           bool retVAL = getLEVEL(level,handle);
+           if (curMEM.allocptr[level] == 0){
+               curMEM.allocptr[level] = pow(2,((2*level)-1));
+           }else {
+              bool boolRET = getLEVEL(level,handle);
+              int curLEVEL = level-1;
+              while (boolRET == false){
+                if (curLEVEL < 0) break;
+                boolRET = getLEVEL(curLEVEL,handle);
+                curLEVEL--;
+             }
+             return &MEMORY[handle].allocptr[curLEVEL];
+          }
        }
     }
 }
-
-        
-
-int main (){
-	int parm1 = 12;	//4KB (Minimum Page Size)
-	long region = 65536;	//64KB (Region Size)
-	int parm2 = 0;
-	int i;
-	
-	int init_test = meminit(region, BUDDY, parm1, &parm2);
-    struct mem test = MEMORY[0];
-    printf("Test:%p\n", &test);
-    printf("Allocptr value: %p\n", test.allocptr);
-    printf("N_Bytes: %lu\n", test.size);
-    printf("Flags: %d\n", test.flags);
-    printf("Parm1: %d\n", test.parm1);
-    printf("Parm2: %p\n",test.parm2);
-    memalloc(init_test,4096);
-    memalloc(init_test,8192);
-    //int *nullARR;
-    //int retINIT = meminit(64000,0x1,4000,nullARR);
-    //memalloc(retINIT,8000);
-}
-
+int main(){printf("I'M MAIN\n");}
