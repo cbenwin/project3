@@ -91,7 +91,7 @@ int meminit (long n_bytes, unsigned int flags, int parm1, int *parm2){
 			fprintf(stderr, "Invalid Size.\n");
 			return -1;
 		}
-        int indices = (long)(n_bytes/parm1);
+        int indices = (long)(n_bytes/(pow(2,parm1)));
         int level = 0;
         unsigned long ZERO = 0;
         for (; level < indices; level++){
