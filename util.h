@@ -8,11 +8,19 @@
 #ifndef UTIL_H_
 #define UTIL_H_
 
-typedef struct ArrayList{
+typedef enum bool {false = 0, true}bool;
+
+typedef struct SlabInfo{
     int objectSize;
-    int* objectStatus;
+    char* objectStatus;
+    bool inUse;
     int objectCount;
-} slab;
+} slabInfo;
+
+typedef union ObjectInfo {
+	char* tree;
+	slabInfo* slabArray;
+} objectInfo;
 
 typedef struct Allocator{
     long size;
@@ -21,19 +29,18 @@ typedef struct Allocator{
     int* parm2;
     unsigned long flags;
     int handle;
-    char* tree;
+    objectInfo usage;
 } allocator;
 
 allocator allocators[512];
 
 
 
-typedef enum bool {false = 0, true}bool;
-
 bool isPowerOf2(int operand);
 void initTree (char* tree, int pages);
 void* buddyMemAlloc(allocator* current, long n_bytes);
 void printTree (allocator current);
+void initArray (char* objectArray, int max);
 int getSmallest (int* objectSizes);
 int validObjects (int* objectSizes);
 

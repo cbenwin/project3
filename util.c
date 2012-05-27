@@ -23,6 +23,15 @@ void initTree (char* tree, int pages) {
 	}
 }
 
+void initArray (char* objectArray, int max) {
+	int index = 0;
+	for (; index < max; ++index) {
+		objectArray[index] = 0;
+		printf("%d ", objectArray[index]);
+	}
+	printf("\n%s: %d\n", "Number of Objects", index);
+}
+
 void printTree (allocator current) {
 
 	const long minPageSize = pow(2, current.parm1);
@@ -37,7 +46,7 @@ void printTree (allocator current) {
 		printf("**%s %d: ", "Level", index);
 		fflush(stdout);
 		while (levelNodes > 0) {
-			printf("%d", current.tree[startIndex]);
+			printf("%d", current.usage.tree[startIndex]);
 			fflush(stdout);
 			++startIndex;
 			--levelNodes;
@@ -130,7 +139,7 @@ int findLevel(const long n_bytes, long size, const long pageSize) {
 void* buddyMemAlloc(allocator* current, const long n_bytes) {
 
 	const long size = current->size;
-	char* tree = current->tree;
+	char* tree = current->usage.tree;
 	const long minPageSize = pow(2, current->parm1);
 
 	int myLevel = findLevel (n_bytes, size, minPageSize);

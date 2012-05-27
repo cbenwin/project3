@@ -19,17 +19,8 @@ void memfree (void* region);
 
 
 int main (){
-	meminit(1024, BUDDY, 2, 0);
-	memalloc (0, 4);
-	memalloc (0, 12);
-	memalloc (0, 32);
-	memalloc (0, 4);
-	memalloc (0, 64);
-	memalloc (0, 5);
-	memalloc (0, 44);
-	memalloc (0, 16);
-	memalloc (0, 120);
-	printTree(allocators[0]);
+	int objectSizes[3] = {32, 16, 0};
+	meminit(16384, SLAB, 1, objectSizes);
 }
 
 
@@ -94,10 +85,10 @@ int meminit (long n_bytes, unsigned int flags, int parm1, int *parm2){
     		current->mem = malloc(n_bytes + (sizeof (char) * nodes));
 
     		//assigning address after memory allocated for buddy to tree array
-    		current->tree = (current->mem + n_bytes);
+    		current->usage.tree = (current->mem + n_bytes);
 
     		//initializing tree array
-    		initTree (current->tree, pages);
+    		initTree (current->usage.tree, pages);
 			current->parm1 = parm1;
 
 			break;
@@ -137,11 +128,45 @@ int meminit (long n_bytes, unsigned int flags, int parm1, int *parm2){
 
     		//number of slabs in current memory region
     		int slabCount = (n_bytes / slabSize);
-    		//maximum number of objects per slab (if smalles object size)
-    		int maxObjects = (slabSize / smallest);
+    		printf("%s: %d\n", "Slab Count", slabCount);
+    		fflush(stdout);
 
-    		current->mem = malloc(n_bytes);
-    		slab slabs[slabCount];
+    		//maximum number of objects per slab (if smallest object size)
+    		int maxObjects = (slabSize / smallest);
+    		int slabMem = sizeof (slabInfo) * slabCount;
+    		printf("%s: %d\n", "Slab Size", sizeof (slabInfo));
+    		printf("%s: %d\n", "SlabMemSize", slabMem);
+    		printf("%s: %d\n", "maxObjects", maxObjects);
+    		fflush(stdout);
+
+    		//since we're only allowed to use one malloc, this mallocs the size of the memory region
+    		//plus the overhead of slab structs and their underlying char*s
+    		current->mem = malloc(n_bytes + slabMem	+ sizeof (char) * maxObjects * slabCount);
+    		printf("%s: %p\n", "Memory Region Address", current->mem);
+    		fflush(stdout);
+
+    		//this sets the pointer to the slabArray to the memory address after n_bytes
+    		current->usage.slabArray = current->mem + n_bytes;
+    		printf("%s: %p\n", "SlabArray Address", current->usage.slabArray);
+    		fflush(stdout);
+
+    		//this sets the pointers to each slab's object status char* to the proper memory address
+    		for (int index = 0; index < slabCount; ++index) {
+    			slabInfo* currentSlab = &current->usage.slabArray[index];
+    			int objectCount = index * maxObjects;
+    			printf("%s: %d\n", "Index * maxObjects", objectCount);
+    			fflush(stdout);
+    			currentSlab->objectStatus = (int)current->usage.slabArray + (index * maxObjects) + slabMem;
+    			printf("%s: %p\n", "ObjectStatus Address", currentSlab->objectStatus);
+    			fflush(stdout);
+    			currentSlab->objectSize = 0;
+    			currentSlab->objectCount = 0;
+    			currentSlab->inUse = false;
+    			printf ("Slab #%d: ", index);
+    			fflush (stdout);
+    			initArray(current->usage.slabArray[index].objectStatus, maxObjects);
+    			printf ("\n");
+    		}
 
 			break;
     	}
